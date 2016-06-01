@@ -1,0 +1,8 @@
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\bin\Debug\PlotArduinoData.exe
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\bin\Debug\PlotArduinoData.pdb
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.csprojResolveAssemblyReference.cache
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.PlotDataView.resources
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.Properties.Resources.resources
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.csproj.GenerateResource.Cache
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.exe
+C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.pdb
