@@ -1,5 +1,6 @@
 ﻿namespace Board
 {
+    
     using System;
     using System.IO.Ports;
     using System.Runtime.InteropServices;
@@ -7,7 +8,8 @@
 
     public class Controller
     {
-        private readonly byte[] _buffer = new byte[2];
+        public const int serialBytesSize = 24;
+        private readonly byte[] _buffer = new byte[serialBytesSize];
         private readonly object _lock = new object();
         private readonly SerialPort _serialPort;
         private long _epoch;
@@ -52,13 +54,14 @@
             _serialPort.DiscardInBuffer();
             _epoch = 0;
 
-            var buf = new byte[2];
-            if (_serialPort.Read(buf, 0, buf.Length) == 2)
+            var buf = new byte[serialBytesSize];
+            if (_serialPort.Read(buf, 0, buf.Length) == serialBytesSize)
             {
+             
                 //Console.WriteLine("Synchronized");
             }
 
-            _serialPort.ReceivedBytesThreshold = 2;
+            _serialPort.ReceivedBytesThreshold = serialBytesSize;
             _serialPort.DataReceived += sp_DataReceived;
         }
 
@@ -70,20 +73,47 @@
                 while (sp.BytesToRead > 1)
                 {
                     sp.Read(_buffer, 0, _buffer.Length);
-                    UInt16[] var = new UInt16[1];
-                    
-                    if(_buffer[0]>=224 && _buffer[0]<=255)
+                    int varSize = 10;
+                    UInt16[] var = new UInt16[varSize];
+                    int headerSize = 4;
+                    bool test = (_buffer[0] == 204) && (_buffer[1] == 170);
+                    if (test)
                     {
-                        ushort hb = (ushort)(_buffer[0] & 31);
-                        hb = (ushort)(hb << 5);
-                        ushort lb = _buffer[1];
-                        var[0] = (UInt16)(hb | lb);
+                        //package
+                        ushort hbpck = (ushort)(_buffer[2] & 31);
+                        hbpck = (ushort)(hbpck << 5);
+                        ushort lbpck = _buffer[3];
+                        _epoch = (UInt16)(hbpck | lbpck);
+
+                        //signal data
+                        for (int i = 0; i < varSize; i++)
+                        {
+                            ushort hb = (ushort)(_buffer[(i * 2) + headerSize] & 31);
+                            hb = (ushort)(hb << 5);
+                            ushort lb = _buffer[(i * 2 + 1) + headerSize];
+                            var[i] = (UInt16)(hb | lb);
+                        }
+
                         OnDataReceived(new ControllerDataReceivedEventArgs(Interlocked.Increment(ref _epoch), var));
                     }
                     else
                     {
-                        Sync();
+
                     }
+                    #region old
+                    //if (_buffer[0]>=224 && _buffer[0]<=255)
+                    //{
+                    //    ushort hb = (ushort)(_buffer[0] & 31);
+                    //    hb = (ushort)(hb << 5);
+                    //    ushort lb = _buffer[1];
+                    //    var[0] = (UInt16)(hb | lb);
+                    //    OnDataReceived(new ControllerDataReceivedEventArgs(Interlocked.Increment(ref _epoch), var));
+                    //}
+                    //else
+                    //{
+                    //    Sync();
+                    //}
+                    #endregion old
                 }
             }
         }

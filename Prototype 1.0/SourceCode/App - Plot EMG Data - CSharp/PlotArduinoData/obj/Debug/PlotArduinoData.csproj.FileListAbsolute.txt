@@ -8,3 +8,9 @@ C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\A
 C:\GitHub\SpeAAC-System\Sensors Development\EMG-based AAC System\Prototype 1.0\App Source Code - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.pdb
 C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.exe
 C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.pdb
+C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\bin\Debug\PlotArduinoData.exe
+C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\bin\Debug\PlotArduinoData.pdb
+C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.csprojResolveAssemblyReference.cache
+C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.PlotDataView.resources
+C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.Properties.Resources.resources
+C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.csproj.GenerateResource.Cache
