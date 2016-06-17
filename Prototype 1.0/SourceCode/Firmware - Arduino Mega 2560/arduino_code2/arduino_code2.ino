@@ -24,8 +24,10 @@ const int aRef = 512;
 
 volatile unsigned int uiADCDataChannelA = 0;      //ADC Channel A current value
 unsigned int uiDataChannelA = 0;                  //Channel A Data
+
 volatile unsigned int uiVecDataChannelA[CAsize];  //Vector for Channel A Data
 unsigned int idxVecA = 0;                         //Index of Vector A
+unsigned int idxPackage = 0;
 
 volatile unsigned char TXBuf[VS];          //Transmission packet
 bool bOverflow;
@@ -107,7 +109,7 @@ void DataAquisition_ISR()
     //if(RECTIFY == 1) uiDataChannelA = RectifySignal(uiADCDataChannelA);
     //else uiDataChannelA = uiADCDataChannelA;
     uiVecDataChannelA[idxVecA++] = uiDataChannelA;
-    if(idxVecA>CAsize)
+    if(idxVecA>=CAsize)
     {
       bOverflow = true;
       idxVecA = 0;
@@ -141,13 +143,19 @@ unsigned int RectifySignal(unsigned int uiPoint)
 void SendData()
 {
     int i_Idx_TXBuf = 0;
-    TXBuf[0] = 0b0000001100110011   //Header
+    TXBuf[0]             = 0b0000000000110011  //Header
+    TXBuf[i_Idx_TXBuf+1] = 0b0000000001010101  //End
+
+    TXBuf[2] = ((unsigned char)((idxPackage & 0b0000001111100000) >> 5) | 0b0000000000000000); //Package
+    TXBuf[3] = ((unsigned char)((idxPackage & 0b0000000000011111)| 0b0000000000000000);
+    idxPackage++;
+
     for(int i=0; i<idxVecA; i+=2)
     {
         TXBuf[(i_Idx_TXBuf++)+1] = ((unsigned char)((uiVecDataChannelA[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
         TXBuf[(i_Idx_TXBuf++)+1] = ((unsigned char)((uiVecDataChannelA[i] & 0b0000000000011111)));                           //lb 000XXXXX
     }
-    TXBuf[i_Idx_TXBuf+1] = 0b0000110011001100 //End
+    
     idxVecA = 0;
 }
 
