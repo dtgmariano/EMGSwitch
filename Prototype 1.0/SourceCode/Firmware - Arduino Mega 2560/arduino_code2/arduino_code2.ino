@@ -21,7 +21,7 @@
 #define xsize_auiChAData 10
 #define maxsize_aucTXBuffer 50
 #define size_header_TXBuffer 5
-#define BAUDRATE 19200                            // BaudRate
+#define BAUDRATE 9600                            // BaudRate
 
 /*Variables*/
 const int aRef = 512;
@@ -31,7 +31,7 @@ volatile unsigned int uiChA_Data = 0;                                  //Channel
 volatile unsigned int auiChA_Data[maxsize_auiChAData];        //Vector for Channel A Data
 unsigned int idxVecChA = 0;                                   //Index of the Vector for Channel A
 bool bOverflow;                                               //VecDataChannel overflowed!
-
+unsigned int counter = 0;
 unsigned char* aucTXBuffer;
 int size_aucTXBuffer = 0;
 unsigned int idxEpoch = 0;                                    //Index of Epoch
@@ -45,18 +45,18 @@ unsigned int idxEpoch = 0;                                    //Index of Epoch
 /*    Action: Initializes all peripherals           */
 /****************************************************/
 void setup() {
-   noInterrupts();
-   pinMode(LED1, OUTPUT);                   //Setup LED1 direction
-   digitalWrite(LED1,LOW);                  //Setup LED1 state
+  noInterrupts();
+  pinMode(LED1, OUTPUT);                   //Setup LED1 direction
+  digitalWrite(LED1, LOW);                 //Setup LED1 state
 
-   idxVecChA = 0;
-   idxEpoch = 0;
-   bOverflow = false;
+  idxVecChA = 0;
+  idxEpoch = 0;
+  bOverflow = false;
 
-   Serial.begin(BAUDRATE);
-   FlexiTimer2::set(TIMER2VAL, DataAquisition_ISR);
-   FlexiTimer2::start();
-   interrupts();
+  Serial.begin(BAUDRATE);
+  FlexiTimer2::set(TIMER2VAL, DataAquisition_ISR);
+  FlexiTimer2::start();
+  interrupts();
 }
 
 /****************************************************/
@@ -68,9 +68,12 @@ void setup() {
 /****************************************************/
 void loop()
 {
-    // put your main code here, to run repeatedly:
-    //__asm__ __volatile__ ("sleep");
-    if(idxVecChA>=xsize_auiChAData) {Toggle_LED1(); SendData();}
+  // put your main code here, to run repeatedly:
+  //__asm__ __volatile__ ("sleep");
+  if (idxVecChA >= xsize_auiChAData) {
+    Toggle_LED1();
+    SendData();
+  }
 }
 
 /****************************************************/
@@ -82,18 +85,21 @@ void loop()
 /****************************************************/
 void DataAquisition_ISR()
 {
-    uiADC_Data = analogRead(0);
+  uiADC_Data = analogRead(0);
 
-    if(RECTIFY == 1) uiChA_Data = RectifySignal(uiADC_Data);
-    else uiChA_Data = uiADC_Data;
+  if (RECTIFY == 1) uiChA_Data = RectifySignal(uiADC_Data);
+  else uiChA_Data = uiADC_Data;
 
-    auiChA_Data[idxVecChA++] = uiChA_Data;
+  //auiChA_Data[idxVecChA++] = uiChA_Data;
+  auiChA_Data[idxVecChA++] = counter++;
 
-    if(idxVecChA>=maxsize_auiChAData)
-    {
-      bOverflow = true;   /*Reached the array max size*/
-      idxVecChA = 0;
-    }
+  if (counter >= 1000) counter = 0;
+
+  if (idxVecChA >= maxsize_auiChAData)
+  {
+    bOverflow = true;   /*Reached the array max size*/
+    idxVecChA = 0;
+  }
 }
 
 /****************************************************/
@@ -102,42 +108,47 @@ void DataAquisition_ISR()
 /*    Input   :  No                                 */
 /*    Output  :  No                                 */
 /*    Action  :  Send data                     .    */
+/*    Observation: For a n bytes buffer:            */
+/*    byte[0] : header package                      */
+/*    byte[1] : header package                      */
+/*    byte[2] : epoch                               */
+/*    byte[3] : size of auiChA_Data                 */
+/*    byte[4] : auiChA_Data[0]_msb                  */
+/*    byte[5] : auiChA_Data[0]_lsb                  */
+/*    byte[6] : auiChA_Data[1]_msb                  */
+/*    byte[7] : auiChA_Data[1]_lsb                  */
+/*      ...                                         */
+/*    byte[n-3]: auiChA_Data[k]_msb                 */
+/*    byte[n-2]: auiChA_Data[k]_lsb                 */
+/*    byte[n-1]: end package                        */
 /****************************************************/
 void SendData()
 {
-    unsigned int size_aucTXBuffer = (idxVecChA*2) + size_header_TXBuffer;
-    // For a n bytes buffer:
-    // byte[0] : header package
-    // byte[1] : header package
-    // byte[2] : epoch
-    // byte[3] : size of auiChA_Data
-    // byte[4] : auiChA_Data[0]_msb
-    // byte[5] : auiChA_Data[0]_lsb
-    // byte[6] : auiChA_Data[1]_msb
-    // byte[7] : auiChA_Data[1]_lsb
-    // ...
-    // byte[n-3]: auiChA_Data[k]_msb
-    // byte[n-2]: auiChA_Data[k]_lsb
-    // byte[n-1]: end package
+  unsigned int size_aucTXBuffer = (idxVecChA * 2) + size_header_TXBuffer;
+  aucTXBuffer = (unsigned char*) realloc(aucTXBuffer, size_aucTXBuffer * sizeof(unsigned char));
 
-    aucTXBuffer = (unsigned char*) realloc(aucTXBuffer, size_aucTXBuffer * sizeof(unsigned char));
+  aucTXBuffer[0] = 0b0000000000110011;  //Header 1
+  aucTXBuffer[1] = 0b0000000011001100;  //Header 2
+  aucTXBuffer[2] = ((unsigned char)(idxEpoch & 0b0000000011111111));
+  aucTXBuffer[3] = ((unsigned char)(idxVecChA & 0b0000000011111111));
 
-    aucTXBuffer[0] = 0b0000000000110011;  //Header 1
-    aucTXBuffer[1] = 0b0000000011001100;  //Header 2
-    aucTXBuffer[2] = ((unsigned char)(idxEpoch & 0b0000000011111111));
-    aucTXBuffer[3] = ((unsigned char)(idxVecChA & 0b0000000011111111));
-    
-    int idx_txbuf = 4;
-    for(int i=0; i<idxVecChA; i++)
-    {
-        aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
-        aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000000000011111)));                           //lb 000XXXXX
-    }
-    aucTXBuffer[idx_txbuf] = 0b0000000010011011; //Foot
+  int idx_txbuf = 4;
+  for (int i = 0; i < idxVecChA; i++)
+  {
+    aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
+    aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000000000011111)));                           //lb 000XXXXX
+  }
+  aucTXBuffer[idx_txbuf] = 0b0000000010011011; //Foo
 
-    idxEpoch++;
-    if(idxEpoch>=200) idxEpoch = 0;
-    idxVecChA = 0;
+  idxEpoch++;
+  if (idxEpoch >= 200) idxEpoch = 0;
+  idxVecChA = 0;
+
+  for (int i = 0; i < size_aucTXBuffer; i++)
+  {
+    Serial.write(aucTXBuffer[i]);
+    Serial.flush();
+  }
 }
 
 /****************************************************/
@@ -149,8 +160,8 @@ void SendData()
 /****************************************************/
 unsigned int RectifySignal(unsigned int uiPoint)
 {
-    if(uiPoint < aRef) return 2 * aRef - uiPoint;
-    else return uiPoint;
+  if (uiPoint < aRef) return 2 * aRef - uiPoint;
+  else return uiPoint;
 }
 
 /****************************************************/
@@ -162,8 +173,8 @@ unsigned int RectifySignal(unsigned int uiPoint)
 /****************************************************/
 void Toggle_LED1(void)
 {
-    if(digitalRead(LED1)==HIGH) digitalWrite(LED1,LOW);
-    else digitalWrite(LED1,HIGH);
+  if (digitalRead(LED1) == HIGH) digitalWrite(LED1, LOW);
+  else digitalWrite(LED1, HIGH);
 }
 
 void filt()

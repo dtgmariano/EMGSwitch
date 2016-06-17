@@ -16,3 +16,8 @@ C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data 
 C:\Users\NTA_UFU\Desktop\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.csproj.GenerateResource.Cache
 C:\GitHub\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.exe
 C:\GitHub\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.pdb
+C:\GitHub\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\bin\Debug\PlotArduinoData.exe
+C:\GitHub\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\bin\Debug\PlotArduinoData.pdb
+C:\GitHub\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.PlotDataView.resources
+C:\GitHub\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.Properties.Resources.resources
+C:\GitHub\EMGSwitch\Prototype 1.0\SourceCode\App - Plot EMG Data - CSharp\PlotArduinoData\obj\Debug\PlotArduinoData.csproj.GenerateResource.Cache
