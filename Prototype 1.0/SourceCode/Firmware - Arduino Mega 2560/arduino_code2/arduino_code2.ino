@@ -138,7 +138,7 @@ void SendData()
     aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
     aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000000000011111)));                           //lb 000XXXXX
   }
-  aucTXBuffer[idx_txbuf] = 0b0000000010011011; //Foo
+  aucTXBuffer[idx_txbuf] = 0b0000000010011011; //foot
 
   idxEpoch++;
   if (idxEpoch >= 200) idxEpoch = 0;
