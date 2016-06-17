@@ -12,18 +12,25 @@
 /*All definitions*/
 #define LED1 13
 #define SAMPFREQ 128                      // ADC sampling rate 256 Hz
-#define TIMER2VAL (1024/(SAMPFREQ))       // Set sampling frequency     
+#define TIMER2VAL (1024/(SAMPFREQ))       // Set sampling frequency
+#define RECTIFY 1
+#define CAsize 10 // Size of the vector
+#define BAUDRATE 19200
 
 /*Variables*/
 const int aRef = 512;
-const int numReadings = 10;
-volatile unsigned int ADC_Value = 0;      //ADC current value
-volatile unsigned char TXBuf[2];          //Transmission packet
 
-unsigned int readings[numReadings];       // the readings from the analog input
-int index = 0;                            // the index of the current reading
-unsigned total = 0;                       // the running total
-unsigned average = 0;                     // the average
+volatile unsigned int uiADCDataChannelA = 0;      //ADC Channel A current value
+unsigned int uiDataChannelA = 0;                  //Channel A Data
+volatile unsigned int uiVecDataChannelA[CAsize];  //Vector for Channel A Data
+unsigned int idxVecA = 0;                         //Index of Vector A
+
+volatile unsigned char TXBuf[VS];          //Transmission packet
+
+//unsigned int readings[numReadings];       // the readings from the analog input
+//int index = 0;                            // the index of the current reading
+//unsigned total = 0;                       // the running total
+//unsigned average = 0;                     // the average
 
 /****************************************************/
 /*  Function name: Toggle_LED1                      */
@@ -57,15 +64,20 @@ void setup() {
    digitalWrite(LED1,LOW); //Setup LED1 state
 
    //TXBuf[0] = 0xa5;    //CH1 High Byte
-   TXBuf[0] = 0x02;    //CH1 Low Byte
-   TXBuf[1] = 0x00;    //CH1 Low Byte
+   for(int iCount = 0; iCount < VS; iCount++)
+   {
+     if(i%2==0) TXBuf[i] = 0x02; //CH1 Low Byte
+     else  TXBuf[i] = 0x00; //CH1 Low Byte
+   }
 
-   for (int thisReading = 0; thisReading < numReadings; thisReading++)
+   idxVecA = 0;
+
+   /*for (int thisReading = 0; thisReading < numReadings; thisReading++)
    {
       readings[thisReading] = 0;
-   }
-  
-   Serial.begin(19200);
+   }*/
+
+   Serial.begin(BAUDRATE);
    FlexiTimer2::set(TIMER2VAL, Timer2_Overflow_ISR);
    FlexiTimer2::start();
    interrupts();
@@ -81,49 +93,59 @@ void setup() {
 void Timer2_Overflow_ISR()
 {
     Toggle_LED1();
-    
-//    /*Smoothing and Rectifying*/
-//    // subtract the last reading:
-//    total= total - readings[index];        
-//    // read from the sensor:  
-//    
-//    ADC_Value = analogRead(0);
-//    if(ADC_Value < aRef)
-//    {
-//       readings[index] = 2 * aRef - ADC_Value;
-//    }
-//      
-//    // add the reading to the total:
-//    total = total + readings[index];      
-//    // advance to the next position in the array:  
-//    index = index + 1;                    
-//  
-//    // if we're at the end of the array...
-//    if (index >= numReadings)              
-//    // ...wrap around to the beginning:
-//    index = 0;                          
-//
-//    // calculate the average:
-//    average = total / numReadings;  
-//    
-//    TXBuf[0] = ((unsigned char)((average & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
-//    TXBuf[1] = ((unsigned char)((average & 0b0000000000011111)));                           //lb 000XXXXX
-//    Serial.write(TXBuf[0]);
-//    Serial.write(TXBuf[1]);
 
-  
-    /*Just Rectifying*/
+    uiADCDataChannelA = analogRead(0);
+    //if(RECTIFY == 1) uiDataChannelA = RectifySignal(uiADCDataChannelA);
+    //else uiDataChannelA = uiADCDataChannelA;
+    uiVecDataChannelA[idxVecA++] = uiDataChannelA;
 
-    ADC_Value = analogRead(0);
-    if(ADC_Value < aRef)
-    {
-       ADC_Value = 2 * aRef - ADC_Value;
-    }
-    
-    TXBuf[0] = ((unsigned char)((ADC_Value & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
-    TXBuf[1] = ((unsigned char)((ADC_Value & 0b0000000000011111)));                           //lb 000XXXXX
-    Serial.write(TXBuf[0]);
-    Serial.write(TXBuf[1]);
+    if(idxVecA>CAsize)
+    //bOverflow = true;
+    //idxVecA++ = 0;
+
+    //TXBuf[0] = ((unsigned char)((ADC_Value & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
+    //TXBuf[1] = ((unsigned char)((ADC_Value & 0b0000000000011111)));                           //lb 000XXXXX
+    //Serial.write(TXBuf[0]);
+    //Serial.write(TXBuf[1]);
+}
+
+unsigned int RectifySignal(unsigned int uiPoint)
+{
+    if(uiPoint < aRef) return 2 * aRef - uiPoint;
+    else return uiPoint;
+}
+
+
+void filt()
+{
+  //    /*Smoothing and Rectifying*/
+  //    // subtract the last reading:
+  //    total= total - readings[index];
+  //    // read from the sensor:
+  //
+  //    ADC_Value = analogRead(0);
+  //    if(ADC_Value < aRef)
+  //    {
+  //       readings[index] = 2 * aRef - ADC_Value;
+  //    }
+  //
+  //    // add the reading to the total:
+  //    total = total + readings[index];
+  //    // advance to the next position in the array:
+  //    index = index + 1;
+  //
+  //    // if we're at the end of the array...
+  //    if (index >= numReadings)
+  //    // ...wrap around to the beginning:
+  //    index = 0;
+  //
+  //    // calculate the average:
+  //    average = total / numReadings;
+  //
+  //    TXBuf[0] = ((unsigned char)((average & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
+  //    TXBuf[1] = ((unsigned char)((average & 0b0000000000011111)));                           //lb 000XXXXX
+  //    Serial.write(TXBuf[0]);
+  //    Serial.write(TXBuf[1]);
 }
 
 void loop() {
