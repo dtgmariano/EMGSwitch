@@ -91,7 +91,7 @@ void DataAquisition_ISR()
     if(idxVecChA>=maxsize_auiChAData)
     {
       bOverflow = true;   /*Reached the array max size*/
-      idxVecA = 0;
+      idxVecChA = 0;
     }
 }
 
@@ -120,9 +120,9 @@ void SendData()
 
     TXBuf[0] = 0b0000000000110011  //Header
     TXBuf[1] = ((unsigned char)((idxEpoch & 0b0000000011111111));
-    TXBuf[2] = ((unsigned char)((idxVecA & 0b0000000011111111));
+    TXBuf[2] = ((unsigned char)((idxVecChA & 0b0000000011111111));
     int idx_txbuf = 3
-    for(int i=0; i<idxVecA; i++)
+    for(int i=0; i<idxVecChA; i++)
     {
         TXBuf[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
         TXBuf[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000000000011111)));                           //lb 000XXXXX
@@ -131,5 +131,5 @@ void SendData()
 
     idxEpoch++;
     if(idxEpoch>=200) idxEpoch = 0;
-    idxVecA = 0;
+    idxVecChA = 0;
 }

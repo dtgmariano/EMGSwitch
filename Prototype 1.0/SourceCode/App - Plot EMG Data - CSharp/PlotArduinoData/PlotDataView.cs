@@ -71,8 +71,6 @@
                 bStart.Enabled = false;
                 cbPortName.Enabled = false;
             }
-
-           
         }
 
 
@@ -86,8 +84,9 @@
 
         private void ControllerOnDataReceived(object sender, ControllerDataReceivedEventArgs controllerDataReceivedEventArgs)
         {
-            receivedData.Enqueue(controllerDataReceivedEventArgs.BoardData[0]);
-            processQueue();
+            Console.WriteLine("");
+            //receivedData.Enqueue(controllerDataReceivedEventArgs.BoardData[0]);
+            //processQueue();
         }
 
         private void processQueue()

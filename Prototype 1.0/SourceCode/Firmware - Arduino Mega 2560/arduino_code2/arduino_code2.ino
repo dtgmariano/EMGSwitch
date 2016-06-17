@@ -18,7 +18,9 @@
 #define TIMER2VAL (1024/(SAMPFREQ))               // Set sampling frequency
 #define RECTIFY 0                                 // 0 No action; 1 Recify EMG Signal based on ARef.
 #define maxsize_auiChAData 50
+#define xsize_auiChAData 10
 #define maxsize_aucTXBuffer 50
+#define size_header_TXBuffer 5
 #define BAUDRATE 19200                            // BaudRate
 
 /*Variables*/
@@ -30,11 +32,9 @@ volatile unsigned int auiChA_Data[maxsize_auiChAData];        //Vector for Chann
 unsigned int idxVecChA = 0;                                   //Index of the Vector for Channel A
 bool bOverflow;                                               //VecDataChannel overflowed!
 
-volatile unsigned char* aucTXBuffer;
+unsigned char* aucTXBuffer;
 int size_aucTXBuffer = 0;
 unsigned int idxEpoch = 0;                                    //Index of Epoch
-
-//volatile unsigned char TXBuf[VS];                           //Transmission packet
 
 
 /****************************************************/
@@ -48,13 +48,6 @@ void setup() {
    noInterrupts();
    pinMode(LED1, OUTPUT);                   //Setup LED1 direction
    digitalWrite(LED1,LOW);                  //Setup LED1 state
-
-   //TXBuf[0] = 0xa5;    //CH1 High Byte
-   //for(int iCount = 0; iCount < VS; iCount++)
-   //{
-   //   if(i%2==0) TXBuf[i] = 0x02; //CH1 Low Byte
-   //   else  TXBuf[i] = 0x00; //CH1 Low Byte
-   //}
 
    idxVecChA = 0;
    idxEpoch = 0;
@@ -77,7 +70,7 @@ void loop()
 {
     // put your main code here, to run repeatedly:
     //__asm__ __volatile__ ("sleep");
-    if(idxVecChA>=10) {Toggle_LED1(); SendData();}
+    if(idxVecChA>=xsize_auiChAData) {Toggle_LED1(); SendData();}
 }
 
 /****************************************************/
@@ -89,16 +82,17 @@ void loop()
 /****************************************************/
 void DataAquisition_ISR()
 {
-    uiADCDataChannelA = analogRead(0);
+    uiADC_Data = analogRead(0);
 
-    if(RECTIFY == 1) uiDataChannelA = RectifySignal(uiADCDataChannelA);
-    else uiDataChannelA = uiADCDataChannelA;
+    if(RECTIFY == 1) uiChA_Data = RectifySignal(uiADC_Data);
+    else uiChA_Data = uiADC_Data;
 
-    uiVecDataChannelA[idxVecChA++] = uiDataChannelA;
-    if(idxVecChA>=vecA_Size)
+    auiChA_Data[idxVecChA++] = uiChA_Data;
+
+    if(idxVecChA>=maxsize_auiChAData)
     {
-      bOverflow = true;
-      idxVecA = 0;
+      bOverflow = true;   /*Reached the array max size*/
+      idxVecChA = 0;
     }
 }
 
@@ -111,26 +105,39 @@ void DataAquisition_ISR()
 /****************************************************/
 void SendData()
 {
-    int i_Idx_TXBuf = 0;
+    unsigned int size_aucTXBuffer = (idxVecChA*2) + size_header_TXBuffer;
+    // For a n bytes buffer:
+    // byte[0] : header package
+    // byte[1] : header package
+    // byte[2] : epoch
+    // byte[3] : size of auiChA_Data
+    // byte[4] : auiChA_Data[0]_msb
+    // byte[5] : auiChA_Data[0]_lsb
+    // byte[6] : auiChA_Data[1]_msb
+    // byte[7] : auiChA_Data[1]_lsb
+    // ...
+    // byte[n-3]: auiChA_Data[k]_msb
+    // byte[n-2]: auiChA_Data[k]_lsb
+    // byte[n-1]: end package
 
-    aucTXBuffer = (unsigned int*) realloc(aucTXBuffer, size * sizeof(unsigned int));
-    size_aucTXBuffer =
+    aucTXBuffer = (unsigned char*) realloc(aucTXBuffer, size_aucTXBuffer * sizeof(unsigned char));
 
-    TXBuf[0] = 0b0000000000110011  //Header
-    TXBuf[1] = 0b0000000001010101  //End
-
-    TXBuf[2] = ((unsigned char)((idxEpoch & 0b0000001111100000) >> 5) | 0b0000000000000000); //Package
-    TXBuf[3] = ((unsigned char)((idxEpoch & 0b0000000000011111)| 0b0000000000000000);
+    aucTXBuffer[0] = 0b0000000000110011;  //Header 1
+    aucTXBuffer[1] = 0b0000000011001100;  //Header 2
+    aucTXBuffer[2] = ((unsigned char)(idxEpoch & 0b0000000011111111));
+    aucTXBuffer[3] = ((unsigned char)(idxVecChA & 0b0000000011111111));
+    
+    int idx_txbuf = 4;
+    for(int i=0; i<idxVecChA; i++)
+    {
+        aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
+        aucTXBuffer[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000000000011111)));                           //lb 000XXXXX
+    }
+    aucTXBuffer[idx_txbuf] = 0b0000000010011011; //Foot
 
     idxEpoch++;
-    if(idxEpoch>=1000) idxEpoch = 0;
-
-    for(int i=0; i<idxVecA; i+=2)
-    {
-        TXBuf[(i_Idx_TXBuf++)+1] = ((unsigned char)((uiVecDataChannelA[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
-        TXBuf[(i_Idx_TXBuf++)+1] = ((unsigned char)((uiVecDataChannelA[i] & 0b0000000000011111)));                           //lb 000XXXXX
-    }
-    idxVecA = 0;
+    if(idxEpoch>=200) idxEpoch = 0;
+    idxVecChA = 0;
 }
 
 /****************************************************/
