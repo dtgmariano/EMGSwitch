@@ -18,7 +18,9 @@
 #define TIMER2VAL (1024/(SAMPFREQ))               // Set sampling frequency
 #define RECTIFY 0                                 // 0 No action; 1 Recify EMG Signal based on ARef.
 #define maxsize_auiChAData 50
+#define xsize_auiChAData 10
 #define maxsize_aucTXBuffer 50
+#define size_header_TXBuffer 4
 #define BAUDRATE 19200                            // BaudRate
 
 /*Variables*/
@@ -34,9 +36,6 @@ volatile unsigned char* aucTXBuffer;
 int size_aucTXBuffer = 0;
 unsigned int idxEpoch = 0;                                    //Index of Epoch
 
-//volatile unsigned char TXBuf[VS];                           //Transmission packet
-
-
 /****************************************************/
 /*  Function name: setup                            */
 /*  Parameters                                      */
@@ -48,13 +47,6 @@ void setup() {
    noInterrupts();
    pinMode(LED1, OUTPUT);                   //Setup LED1 direction
    digitalWrite(LED1,LOW);                  //Setup LED1 state
-
-   //TXBuf[0] = 0xa5;    //CH1 High Byte
-   //for(int iCount = 0; iCount < VS; iCount++)
-   //{
-   //   if(i%2==0) TXBuf[i] = 0x02; //CH1 Low Byte
-   //   else  TXBuf[i] = 0x00; //CH1 Low Byte
-   //}
 
    idxVecChA = 0;
    idxEpoch = 0;
@@ -77,7 +69,7 @@ void loop()
 {
     // put your main code here, to run repeatedly:
     //__asm__ __volatile__ ("sleep");
-    if(idxVecChA>=10) {Toggle_LED1(); SendData();}
+    if(idxVecChA>=xsize_auiChAData) {Toggle_LED1(); SendData();}
 }
 
 /****************************************************/
@@ -89,15 +81,16 @@ void loop()
 /****************************************************/
 void DataAquisition_ISR()
 {
-    uiADCDataChannelA = analogRead(0);
+    uiADC_Data = analogRead(0);
 
-    if(RECTIFY == 1) uiDataChannelA = RectifySignal(uiADCDataChannelA);
-    else uiDataChannelA = uiADCDataChannelA;
+    if(RECTIFY == 1) uiChA_Data = RectifySignal(uiADC_Data);
+    else uiChA_Data = uiADC_Data;
 
-    uiVecDataChannelA[idxVecChA++] = uiDataChannelA;
-    if(idxVecChA>=vecA_Size)
+    auiChA_Data[idxVecChA++] = uiChA_Data;
+
+    if(idxVecChA>=maxsize_auiChAData)
     {
-      bOverflow = true;
+      bOverflow = true;   /*Reached the array max size*/
       idxVecA = 0;
     }
 }
@@ -111,77 +104,32 @@ void DataAquisition_ISR()
 /****************************************************/
 void SendData()
 {
-    int i_Idx_TXBuf = 0;
+    unsigned int size_aucTXBuffer = (idxVecChA*2) + size_header_TXBuffer;
+    // For a n bytes buffer:
+    // byte[0] : header package
+    // byte[1] : epoch
+    // byte[2] : size of auiChA_Data
+    // byte[3] : auiChA_Data[0]_msb
+    // byte[4] : auiChA_Data[0]_lsb
+    // ...
+    // byte[n-3]:
+    // byte[n-2]:
+    // byte[n-1]: end package
 
-    aucTXBuffer = (unsigned int*) realloc(aucTXBuffer, size * sizeof(unsigned int));
-    size_aucTXBuffer =
+    aucTXBuffer = (unsigned int*) realloc(aucTXBuffer, size_aucTXBuffer * sizeof(unsigned int));
 
     TXBuf[0] = 0b0000000000110011  //Header
-    TXBuf[1] = 0b0000000001010101  //End
-
-    TXBuf[2] = ((unsigned char)((idxEpoch & 0b0000001111100000) >> 5) | 0b0000000000000000); //Package
-    TXBuf[3] = ((unsigned char)((idxEpoch & 0b0000000000011111)| 0b0000000000000000);
+    TXBuf[1] = ((unsigned char)((idxEpoch & 0b0000000011111111));
+    TXBuf[2] = ((unsigned char)((idxVecA & 0b0000000011111111));
+    int idx_txbuf = 3
+    for(int i=0; i<idxVecA; i++)
+    {
+        TXBuf[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
+        TXBuf[idx_txbuf++] = ((unsigned char)((auiChA_Data[i] & 0b0000000000011111)));                           //lb 000XXXXX
+    }
+    TXBuf[idx_txbuf] = 0b0000000010011011 //Foot
 
     idxEpoch++;
-    if(idxEpoch>=1000) idxEpoch = 0;
-
-    for(int i=0; i<idxVecA; i+=2)
-    {
-        TXBuf[(i_Idx_TXBuf++)+1] = ((unsigned char)((uiVecDataChannelA[i] & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
-        TXBuf[(i_Idx_TXBuf++)+1] = ((unsigned char)((uiVecDataChannelA[i] & 0b0000000000011111)));                           //lb 000XXXXX
-    }
+    if(idxEpoch>=200) idxEpoch = 0;
     idxVecA = 0;
-}
-
-/****************************************************/
-/*  Function name: RectifySignal                    */
-/*  Parameters                                      */
-/*    Input   :  No                                 */
-/*    Output  :  No                                 */
-/*    Action  :  Send data                     .    */
-/****************************************************/
-unsigned int RectifySignal(unsigned int uiPoint)
-{
-    if(uiPoint < aRef) return 2 * aRef - uiPoint;
-    else return uiPoint;
-}
-
-/****************************************************/
-/*  Function name: Toggle_LED1                      */
-/*  Parameters                                      */
-/*    Input   :  No                                 */
-/*    Output  :  No                                 */
-/*    Action: Switches-over LED1.                   */
-/****************************************************/
-void Toggle_LED1(void)
-{
-    if(digitalRead(LED1)==HIGH) digitalWrite(LED1,LOW);
-    else digitalWrite(LED1,HIGH);
-}
-
-void filt()
-{
-  //    /*Smoothing and Rectifying*/
-  //    // subtract the last reading:
-  //    total= total - readings[index];
-  //    // read from the sensor:
-  //
-  //    ADC_Value = analogRead(0);
-  //    if(ADC_Value < aRef)
-  //    {
-  //       readings[index] = 2 * aRef - ADC_Value;
-  //    }
-  //
-  //    // add the reading to the total:
-  //    total = total + readings[index];
-  //    // advance to the next position in the array:
-  //    index = index + 1;
-  //
-  //    // if we're at the end of the array...
-  //    if (index >= numReadings)
-  //    // ...wrap around to the beginning:
-  //    index = 0;
-  //
-  //    // calculate the average:
-  //    average = total / numReadings;
 }
