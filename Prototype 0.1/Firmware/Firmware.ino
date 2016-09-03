@@ -80,50 +80,55 @@ void setup() {
 /****************************************************/
 void Timer2_Overflow_ISR()
 {
-    Toggle_LED1();
-    
-//    /*Smoothing and Rectifying*/
-//    // subtract the last reading:
-//    total= total - readings[index];        
-//    // read from the sensor:  
-//    
-//    ADC_Value = analogRead(0);
-//    if(ADC_Value < aRef)
-//    {
-//       readings[index] = 2 * aRef - ADC_Value;
-//    }
-//      
-//    // add the reading to the total:
-//    total = total + readings[index];      
-//    // advance to the next position in the array:  
-//    index = index + 1;                    
-//  
-//    // if we're at the end of the array...
-//    if (index >= numReadings)              
-//    // ...wrap around to the beginning:
-//    index = 0;                          
-//
-//    // calculate the average:
-//    average = total / numReadings;  
-//    
-//    TXBuf[0] = ((unsigned char)((average & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
-//    TXBuf[1] = ((unsigned char)((average & 0b0000000000011111)));                           //lb 000XXXXX
-//    Serial.write(TXBuf[0]);
-//    Serial.write(TXBuf[1]);
+  /*Led Blink*/
+  Toggle_LED1();
 
-    /*Read ADC*/
-    ADC_Value = analogRead(0);
-    /*Just Rectifying*/
-    if(ADC_Value < aRef)
-    {
-       ADC_Value = 2 * aRef - ADC_Value;
-    }
-    /*HSB and LSB from data*/
-    TXBuf[0] = ((unsigned char)((ADC_Value & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
-    TXBuf[1] = ((unsigned char)((ADC_Value & 0b0000000000011111)));                           //lb 000XXXXX
-   /*Write data at serial port*/
-   Serial.write(TXBuf[0]);
-   Serial.write(TXBuf[1]);
+  /*Read ADC*/
+  ADC_Value = analogRead(0);
+    
+  /*Just Rectifying*/
+  if(ADC_Value < aRef)
+     ADC_Value = 2 * aRef - ADC_Value;
+       
+  /*HSB and LSB from data*/
+  TXBuf[0] = ((unsigned char)((ADC_Value & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
+  TXBuf[1] = ((unsigned char)((ADC_Value & 0b0000000000011111)));                           //lb 000XXXXX
+    
+  /*Write data at serial port*/
+  Serial.write(TXBuf[0]);
+  Serial.write(TXBuf[1]);
+}
+
+void PreProcess()
+{
+  //    /*Smoothing and Rectifying*/
+  //    // subtract the last reading:
+  //    total= total - readings[index];        
+  //    // read from the sensor:  
+  //    
+  //    ADC_Value = analogRead(0);
+  //    if(ADC_Value < aRef)
+  //    {
+  //       readings[index] = 2 * aRef - ADC_Value;
+  //    }
+  //      
+  //    // add the reading to the total:
+  //    total = total + readings[index];      
+  //    // advance to the next position in the array:  
+  //    index = index + 1;                    
+  //  
+  //    // if we're at the end of the array...
+  //    if (index >= numReadings)              
+  //    // ...wrap around to the beginning:
+  //    index = 0;                          
+  //
+  //    // calculate the average:
+  //    average = total / numReadings;  
+  //    
+  //    TXBuf[0] = ((unsigned char)((average & 0b0000001111100000) >> 5) | 0b0000000011100000); //hb 111XXXXX
+  //    TXBuf[1] = ((unsigned char)((average & 0b0000000000011111)));                           //lb 000XXXXX
+  //    Serial.write(TXBuf[0]);
+  //    Serial.write(TXBuf[1]);
 }
 
 void loop() {
